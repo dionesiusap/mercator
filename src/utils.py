@@ -43,3 +43,40 @@ def end_point(pos, robot_param, sensor_data):
             [ pos[0]+sensor_data[i]*np.cos(np.deg2rad(theta)),
               pos[1]+sensor_data[i]*np.sin(np.deg2rad(theta))] )
     return pts_list
+
+
+def load_env_from_img(fname):
+        im = cv2.imread(fname)
+        m = np.asarray(im)
+        m = cv2.cvtColor(m, cv2.COLOR_RGB2GRAY)
+        m = m.astype(float) / 255.
+        return m
+
+
+def get_img_from_map(m):
+    img = (255*m).astype(np.uint8)
+    img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+    return img
+
+
+def rot2deg(R):
+    cos = R[0,0]
+    sin = R[1,0]
+    theta = np.rad2deg(np.arccos(np.abs(cos)))
+    
+    if cos>0 and sin>0:
+        return theta
+    elif cos<0 and sin>0:
+        return 180-theta
+    elif cos<0 and sin<0:
+        return 180+theta
+    elif cos>0 and sin<0:
+        return 360-theta
+    elif cos==0 and sin>0:
+        return 90.0
+    elif cos==0 and sin<0:
+        return 270.0
+    elif cos>0 and sin==0:
+        return 0.0
+    elif cos<0 and sin==0:
+        return 180.0
