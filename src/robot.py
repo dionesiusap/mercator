@@ -10,9 +10,9 @@ class Robot:
         self.pos = pos
         self.config = config
         
-        self.img_map = utils.load_env_from_image(env_img)
+        # self.img_map = utils.load_env_from_img(env_img)
         scale = 1
-        img = utils.load_env_from_image(env_img)
+        img = utils.load_env_from_img(env_img)
         img = cv2.resize(img, (round(scale*img.shape[1]), round(scale*img.shape[0])), interpolation=cv2.INTER_LINEAR)
         self.img_map = img
     
