@@ -11,11 +11,11 @@ from particle_filter import Particle, ParticleFilter
 from robot import Robot
 
 
-def Draw(img_map, scale, robot_pos, sensor_data, robot_config):
+def Draw(img_map, scale, robot_pos, sensor_data, sensor_config):
     img = img_map.copy()
     img = cv2.resize(img, (round(scale*img.shape[1]), round(scale*img.shape[0])), interpolation=cv2.INTER_LINEAR)
     img = utils.get_img_from_map(img)
-    plist = utils.end_point(robot_pos, robot_config, sensor_data)
+    plist = utils.end_point(robot_pos, sensor_config, sensor_data)
     for pts in plist:
         cv2.line(
             img, 
@@ -33,12 +33,12 @@ def DrawParticle(img, plist, scale=1.0):
     return img
 
 
-def SensorMapping(m, robot_pos, robot_config, sensor_data):
-    inter = (robot_config[2] - robot_config[1]) / (robot_config[0]-1)
-    for i in range(robot_config[0]):
-        if sensor_data[i] > robot_config[3]-1 or sensor_data[i] < 1:
+def SensorMapping(m, robot_pos, sensor_config, sensor_data):
+    inter = (sensor_config['end_angle'] - sensor_config['start_angle']) / (sensor_config['sensor_size']-1)
+    for i in range(sensor_config['sensor_size']):
+        if sensor_data[i] > sensor_config['max_dist']-1 or sensor_data[i] < 1:
             continue
-        theta = robot_pos[2] + robot_config[1] + i*inter
+        theta = robot_pos[2] + sensor_config['start_angle'] + i*inter
         m.scan_line(
             int(robot_pos[0]), 
             int(robot_pos[0]+sensor_data[i]*np.cos(np.deg2rad(theta))),
@@ -62,29 +62,38 @@ if __name__ == '__main__':
     cv2.namedWindow('map', cv2.WINDOW_AUTOSIZE)
 
     # Initialize 2D Environment
-    # SensorSize, StartAngle, EndAngle, MaxDist, Velocity, Angular
-    robot_config = [240,-30.0, 210.0, 150.0, 6.0, 6.0]
+    robot_config = {
+        'velocity': 6.0,
+        'omega': 6.0
+    }
+
+    sensor_config = {
+        'sensor_size': 240,
+        'start_angle': -30.0,
+        'end_angle': 210.0,
+        'max_dist': 150.0
+    }
     robot_pos = np.array([150.0, 100.0, 0.0])
-    env = Robot(robot_pos, robot_config, '../img/env1.png')
+    robot = Robot(robot_pos, robot_config, sensor_config, '../img/env1.png')
 
     # Initialize GridMap
     # lo_occ, lo_free, lo_max, lo_min
     map_param = [0.4, -0.4, 5.0, -5.0] 
     m = OccupancyGridMap(map_param, grid_size=1.0)
-    sensor_data = env.measure()
-    SensorMapping(m, env.pos, env.config, sensor_data)
+    sensor_data = robot.measure()
+    SensorMapping(m, robot.pose, robot.sensor.config, sensor_data)
 
-    img = Draw(env.img_map, 1, env.pos, sensor_data, env.config)
+    img = Draw(robot.environment, 1, robot.pose, sensor_data, robot.sensor.config)
     mimg = AdaptiveGetMap(m)
     cv2.imshow('view',img)
     cv2.imshow('map',mimg)
 
     # Initialize Particle
-    pf = ParticleFilter(robot_pos.copy(), robot_config, copy.deepcopy(m), 10)
+    pf = ParticleFilter(robot_pos.copy(), robot_config, sensor_config, copy.deepcopy(m), 10)
     
     # Scan Matching Test
     matching_m = OccupancyGridMap(map_param, grid_size=1.0)
-    SensorMapping(matching_m, env.pos, env.config, sensor_data)
+    SensorMapping(matching_m, robot.pose, robot.sensor.config, sensor_data)
     matching_pos = np.array([150.0, 100.0, 0.0])
 
     # Main Loop
@@ -111,11 +120,11 @@ if __name__ == '__main__':
             action = 8
         
         if action > 0:
-            env.move(action)
-            sensor_data = env.measure()
-            SensorMapping(m, env.pos, env.config, sensor_data)
-    
-            img = Draw(env.img_map, 1, env.pos, sensor_data, env.config)
+            robot.move(action)
+            sensor_data = robot.measure()
+            SensorMapping(m, robot.pose, robot.sensor.config, sensor_data)
+
+            img = Draw(robot.environment, 1, robot.pose, sensor_data, robot.sensor.config)
             mimg = AdaptiveGetMap(m)
             
             pf.update(action, sensor_data)

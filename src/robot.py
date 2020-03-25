@@ -6,73 +6,111 @@ import utils
 
 
 class Robot:
-    def __init__(self, pos, config, env_img):
-        self.pos = pos
-        self.config = config
+    def __init__(self, pose, robot_config, sensor_config, env_img):
+        self.pose = pose
+        self.velocity = robot_config['velocity']
+        self.omega = robot_config['omega']
         
-        # self.img_map = utils.load_env_from_img(env_img)
         scale = 1
         img = utils.load_env_from_img(env_img)
         img = cv2.resize(img, (round(scale*img.shape[1]), round(scale*img.shape[0])), interpolation=cv2.INTER_LINEAR)
-        self.img_map = img
-    
+        self.environment = img
+        self.sensor = LaserScanSensor(sensor_config, self.environment)
+
+
+    @property
+    def config(self):
+        config_dict = {
+            'velocity': self.velocity,
+            'omega': self.omega
+        }
+        return config_dict
+
 
     def move(self, action_id):
-        vec = [np.sin(np.deg2rad(self.pos[2])), np.cos(np.deg2rad(self.pos[2]))]
-        vel = self.config[4]
-        ang = self.config[5]
+        vec = [np.sin(np.deg2rad(self.pose[2])), np.cos(np.deg2rad(self.pose[2]))]
 
         if action_id == 1:
-            self.pos[0] -= vel*vec[0]
-            self.pos[1] += vel*vec[1]
+            self.pose[0] -= self.velocity*vec[0]
+            self.pose[1] += self.velocity*vec[1]
         if action_id == 2:
-            self.pos[0] += vel*vec[0]
-            self.pos[1] -= vel*vec[1]
+            self.pose[0] += self.velocity*vec[0]
+            self.pose[1] -= self.velocity*vec[1]
         if action_id == 3:
-            self.pos[2] -= ang
-            self.pos[2] = self.pos[2] % 360
+            self.pose[2] -= self.omega
+            self.pose[2] = self.pose[2] % 360
         if action_id == 4:  
-            self.pos[2] += ang
-            self.pos[2] = self.pos[2] % 360
+            self.pose[2] += self.omega
+            self.pose[2] = self.pose[2] % 360
         
         if action_id == 5:
-            self.pos[1] -= vel
+            self.pose[1] -= self.velocity
         if action_id == 6:
-            self.pos[0] -= vel
+            self.pose[0] -= self.velocity
         if action_id == 7:
-            self.pos[0] += vel
+            self.pose[0] += self.velocity
         if action_id == 8:
-            self.pos[1] += vel
+            self.pose[1] += self.velocity
         
         sig=[0.5,0.5,0.5]
-        self.pos[0] += random.gauss(0,sig[0])
-        self.pos[1] += random.gauss(0,sig[1])
-        self.pos[2] += random.gauss(0,sig[2])
+        self.pose[0] += random.gauss(0,sig[0])
+        self.pose[1] += random.gauss(0,sig[1])
+        self.pose[2] += random.gauss(0,sig[2])
 
 
     def measure(self):
-        sense_data = []
-        inter = (self.config[2] - self.config[1]) / (self.config[0]-1)
-        for i in range(self.config[0]):
-            theta = self.pos[2] + self.config[1] + i*inter
-            sense_data.append(self.laser_scan(np.array((self.pos[0], self.pos[1])), theta))
+        # sense_data = []
+        # inter = (self.config[2] - self.config[1]) / (self.config[0]-1)
+        # for i in range(self.config[0]):
+        #     theta = self.pos[2] + self.config[1] + i*inter
+        #     sense_data.append(self.sensor.measure_single_beam(np.array((self.pos[0], self.pos[1])), theta, self.environment))
+        # return sense_data
+        sense_data = self.sensor.do_complete_scan(self.pose)
         return sense_data
 
 
-    def laser_scan(self, pos, theta):
-        end = np.array((pos[0] + self.config[3]*np.cos(np.deg2rad(theta)), pos[1] + self.config[3]*np.sin(np.deg2rad(theta))))
+class LaserScanSensor:
+    def __init__(self, sensor_config, environment):
+        self.sensor_size = sensor_config['sensor_size']
+        self.start_angle = sensor_config['start_angle']
+        self.end_angle = sensor_config['end_angle']
+        self.max_dist = sensor_config['max_dist']
 
-        x0, y0 = int(pos[0]), int(pos[1])
-        x1, y1 = int(end[0]), int(end[1])
-        plist = utils.bresenham(x0, x1, y0, y1)
-        i = 0
-        dist = self.config[3]
-        for p in plist:
-            if p[1] >= self.img_map.shape[0] or p[0] >= self.img_map.shape[1] or p[1]<0 or p[0]<0:
-                continue
-            if self.img_map[p[1], p[0]] < 0.6:
-                tmp = math.pow(float(p[0]) - pos[0], 2) + math.pow(float(p[1]) - pos[1], 2)
-                tmp = math.sqrt(tmp)
-                if tmp < dist:
-                    dist = tmp
+        self.environment = environment
+
+
+    @property
+    def config(self):
+        config_dict = {
+            'sensor_size': self.sensor_size,
+            'start_angle': self.start_angle,
+            'end_angle': self.end_angle,
+            'max_dist': self.max_dist
+        }
+        return config_dict
+
+
+    def measure_single_beam(self, robot_pose, theta):
+        start = np.array([robot_pose[0], robot_pose[1]])
+        end = np.array([(robot_pose[0] + self.max_dist * np.cos(np.deg2rad(theta))), (robot_pose[1] + self.max_dist * np.sin(np.deg2rad(theta)))])
+
+        beam_path = utils.bresenham(start, end)
+
+        dist = self.max_dist
+        for p in beam_path:
+            if p[1] < self.environment.shape[0] and p[0] < self.environment.shape[1] and p[1] >= 0 and p[0] >= 0:
+                if self.environment[p[1], p[0]] < 0.6:
+                    tmp = math.pow(float(p[0]) - robot_pose[0], 2) + math.pow(float(p[1]) - robot_pose[1], 2)
+                    tmp = math.sqrt(tmp)
+                    if tmp < dist:
+                        dist = tmp
         return dist
+    
+    
+    def do_complete_scan(self, robot_pose):
+        sense_data = []
+        inter = (self.end_angle - self.start_angle) / (self.sensor_size-1)
+        for i in range(self.sensor_size):
+            theta = robot_pose[2] + self.start_angle + i*inter
+            sense_data.append(self.measure_single_beam(np.array((robot_pose[0], robot_pose[1])), theta))
+        return sense_data

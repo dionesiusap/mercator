@@ -40,11 +40,11 @@ def gaussian(x, mu, sigma):
     return 1./(sqrt(2.*pi)*sigma)*np.exp(-np.power((x - mu)/sigma, 2.)/2)
 
 
-def end_point(pos, robot_param, sensor_data):
+def end_point(pos, sensor_config, sensor_data):
     pts_list = []
-    inter = (robot_param[2] - robot_param[1]) / (robot_param[0]-1)
-    for i in range(robot_param[0]):
-        theta = pos[2] + robot_param[1] + i*inter
+    inter = (sensor_config['end_angle'] - sensor_config['start_angle']) / (sensor_config['sensor_size']-1)
+    for i in range(sensor_config['sensor_size']):
+        theta = pos[2] + sensor_config['start_angle'] + i*inter
         pts_list.append(
             [ pos[0]+sensor_data[i]*np.cos(np.deg2rad(theta)),
               pos[1]+sensor_data[i]*np.sin(np.deg2rad(theta))] )

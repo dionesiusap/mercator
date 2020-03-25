@@ -8,16 +8,17 @@ from grid_map import OccupancyGridMap
 
 
 class Particle:
-    def __init__(self, pos, robot_config, grid_map):
+    def __init__(self, pos, robot_config, sensor_config, grid_map):
         self.pos = pos
         self.robot_config = robot_config
+        self.sensor_config = sensor_config
         self.grid_map = grid_map
 
 
     def control_update(self, action_id, sigma=[0.4,0.4,0.4]):
         vec = [np.sin(np.deg2rad(self.pos[2])), np.cos(np.deg2rad(self.pos[2]))]
-        vel = self.robot_config[4]
-        ang = self.robot_config[5]
+        vel = self.robot_config['velocity']
+        ang = self.robot_config['omega']
 
         if action_id == 1:
             self.pos[0] -= vel*vec[0]
@@ -70,19 +71,19 @@ class Particle:
         p_rand = 0.1
         sig_hit = 3.0
         q = 1
-        plist = utils.end_point(self.pos, self.robot_config, sensor_data)
+        plist = utils.end_point(self.pos, self.sensor_config, sensor_data)
         for i in range(len(plist)):
-            if not (sensor_data[i] > self.robot_config[3]-1 or sensor_data[i] < 1):
+            if not (sensor_data[i] > self.sensor_config['max_dist']-1 or sensor_data[i] < 1):
                 dist = self.nearest_distance(plist[i][0], plist[i][1], 4, 0.2)
-                q = q * (p_hit*utils.gaussian(0,dist,sig_hit) + p_rand/self.robot_config[3])
+                q = q * (p_hit*utils.gaussian(0,dist,sig_hit) + p_rand/self.sensor_config['max_dist'])
         return q
 
 
     def mapping(self, sensor_data):
-        inter = (self.robot_config[2] - self.robot_config[1]) / (self.robot_config[0]-1)
-        for i in range(self.robot_config[0]):
-            if not (sensor_data[i] > self.robot_config[3]-1 or sensor_data[i] < 1):
-                theta = self.pos[2] + self.robot_config[1] + i*inter
+        inter = (self.sensor_config['end_angle'] - self.sensor_config['start_angle']) / (self.sensor_config['sensor_size']-1)
+        for i in range(self.sensor_config['sensor_size']):
+            if not (sensor_data[i] > self.sensor_config['max_dist']-1 or sensor_data[i] < 1):
+                theta = self.pos[2] + self.sensor_config['start_angle'] + i*inter
                 self.grid_map.scan_line(
                     int(self.pos[0]), 
                     int(self.pos[0]+sensor_data[i]*np.cos(np.deg2rad(theta))),
@@ -92,11 +93,11 @@ class Particle:
 
 
 class ParticleFilter:
-    def __init__(self, pos, robot_config, grid_map, size):
+    def __init__(self, pos, robot_config, sensor_config, grid_map, size):
         self.size = size
         self.particles = []
         self.weights = np.ones((size), dtype=float) / size
-        p = Particle(pos.copy(), robot_config, copy.deepcopy(grid_map))
+        p = Particle(pos.copy(), robot_config, sensor_config, copy.deepcopy(grid_map))
         for i in range(size):
             self.particles.append(copy.deepcopy(p))
     
