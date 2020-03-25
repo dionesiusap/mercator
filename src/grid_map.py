@@ -36,10 +36,10 @@ class OccupancyGridMap:
 
     def scan_line(self, x0, x1, y0, y1):
         # Scale the position
-        x0, x1 = int(round(x0/self.grid_size)), int(round(x1/self.grid_size))
-        y0, y1 = int(round(y0/self.grid_size)), int(round(y1/self.grid_size))
+        start = np.array([int(round(x0/self.grid_size)), int(round(y0/self.grid_size))])
+        end = np.array([int(round(x1/self.grid_size)), int(round(y1/self.grid_size))])
 
-        rec = utils.bresenham(x0, x1, y0, y1)
+        rec = utils.bresenham(start, end)
         for i in range(len(rec)):
             if i < len(rec)-2:
                 change = self.map_param[0]

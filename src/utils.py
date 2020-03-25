@@ -3,7 +3,12 @@ import cv2
 from math import *
 
 
-def bresenham(x0, x1, y0, y1):
+def bresenham(start, end):
+    x0 = int(round(start[0]))
+    y0 = int(round(start[1]))
+    x1 = int(round(end[0]))
+    y1 = int(round(end[1]))
+
     rec = []
     dx = abs(x1 - x0)
     dy = abs(y1 - y0)
