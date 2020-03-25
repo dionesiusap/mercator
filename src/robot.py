@@ -59,12 +59,6 @@ class Robot:
 
 
     def measure(self):
-        # sense_data = []
-        # inter = (self.config[2] - self.config[1]) / (self.config[0]-1)
-        # for i in range(self.config[0]):
-        #     theta = self.pos[2] + self.config[1] + i*inter
-        #     sense_data.append(self.sensor.measure_single_beam(np.array((self.pos[0], self.pos[1])), theta, self.environment))
-        # return sense_data
         sense_data = self.sensor.do_complete_scan(self.pose)
         return sense_data
 
