@@ -63,6 +63,14 @@ if __name__ == '__main__':
     cv2.namedWindow('map', cv2.WINDOW_AUTOSIZE)
 
     # Initialize 2D Environment
+    environment_config = {
+        'img_src': '../img/env1.png',
+        'scale': 1.0
+    }
+
+    env = utils.load_env_from_img(environment_config['img_src'])
+    env = cv2.resize(env, (round(environment_config['scale']*env.shape[1]), round(environment_config['scale']*env.shape[0])), interpolation=cv2.INTER_LINEAR)
+
     robot_config = {
         'velocity': 6.0,
         'omega': 6.0
@@ -75,7 +83,7 @@ if __name__ == '__main__':
         'max_dist': 150.0
     }
     robot_pos = np.array([150.0, 100.0, 0.0])
-    robot = Robot(robot_pos, robot_config, sensor_config, '../img/env1.png')
+    robot = Robot(robot_pos, robot_config, sensor_config)
 
     # Initialize GridMap
     occupancy_map_config = {
@@ -85,10 +93,10 @@ if __name__ == '__main__':
         'lo_min': -5.0
     }
     m = OccupancyGridMap(occupancy_map_config, grid_size=1.0)
-    sensor_data = robot.measure()
+    sensor_data = robot.measure(env)
     SensorMapping(m, robot.pose, robot.sensor.config, sensor_data)
 
-    img = Draw(robot.environment, 1, robot.pose, sensor_data, robot.sensor.config)
+    img = Draw(env, 1, robot.pose, sensor_data, robot.sensor.config)
     mimg = AdaptiveGetMap(m)
     cv2.imshow('view',img)
     cv2.imshow('map',mimg)
@@ -126,10 +134,10 @@ if __name__ == '__main__':
         
         if action > 0:
             robot.move(action)
-            sensor_data = robot.measure()
+            sensor_data = robot.measure(env)
             SensorMapping(m, robot.pose, robot.sensor.config, sensor_data)
 
-            img = Draw(robot.environment, 1, robot.pose, sensor_data, robot.sensor.config)
+            img = Draw(env, 1, robot.pose, sensor_data, robot.sensor.config)
             mimg = AdaptiveGetMap(m)
             
             pf.update(action, sensor_data)
