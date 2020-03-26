@@ -3,22 +3,37 @@ import utils
 
 
 class OccupancyGridMap:
-    def __init__(self, map_param, grid_size=1.0):
-        self.map_param = map_param
+    def __init__(self, map_config, grid_size=1.0):
+        self.lo_occupied = map_config['lo_occupied']
+        self.lo_free = map_config['lo_free']
+        self.lo_max = map_config['lo_max']
+        self.lo_min = map_config['lo_min']
+
         self.grid_map = {}
         self.grid_size = grid_size
         self.boundary = [9999,-9999,9999,-9999]
 
 
-    def calc_grid_probability(self, pos):
-        if pos in self.grid_map:
-            return np.exp(self.grid_map[pos]) / (1.0 + np.exp(self.grid_map[pos]))
+    @property
+    def config(self):
+        config_dict = {
+            'lo_occupied': self.lo_occupied,
+            'lo_free': self.lo_free,
+            'lo_max': self.lo_max,
+            'lo_min': self.lo_min
+        }
+        return config_dict
+
+
+    def calc_grid_probability(self, coord):
+        if coord in self.grid_map:
+            return np.exp(self.grid_map[coord]) / (1.0 + np.exp(self.grid_map[coord]))
         else:
             return 0.5
 
 
-    def calc_coordinate_probability(self, pos):
-        x, y = int(round(pos[0]/self.grid_size)), int(round(pos[1]/self.grid_size))
+    def calc_coordinate_probability(self, pose):
+        x, y = int(round(pose[0]/self.grid_size)), int(round(pose[1]/self.grid_size))
         return self.calc_grid_probability((x,y))
 
 
@@ -42,9 +57,9 @@ class OccupancyGridMap:
         rec = utils.bresenham(start, end)
         for i in range(len(rec)):
             if i < len(rec)-2:
-                change = self.map_param[0]
+                change = self.lo_occupied
             else:
-                change = self.map_param[1]
+                change = self.lo_free
 
             if rec[i] in self.grid_map:
                 self.grid_map[rec[i]] += change
@@ -59,7 +74,7 @@ class OccupancyGridMap:
                 elif rec[i][1] > self.boundary[3]:
                     self.boundary[3] = rec[i][1]
 
-            if self.grid_map[rec[i]] > self.map_param[2]:
-                self.grid_map[rec[i]] = self.map_param[2]
-            if self.grid_map[rec[i]] < self.map_param[3]:
-                self.grid_map[rec[i]] = self.map_param[3]
+            if self.grid_map[rec[i]] > self.lo_max:
+                self.grid_map[rec[i]] = self.lo_max
+            if self.grid_map[rec[i]] < self.lo_min:
+                self.grid_map[rec[i]] = self.lo_min

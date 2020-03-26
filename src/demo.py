@@ -15,21 +15,22 @@ def Draw(img_map, scale, robot_pos, sensor_data, sensor_config):
     img = img_map.copy()
     img = cv2.resize(img, (round(scale*img.shape[1]), round(scale*img.shape[0])), interpolation=cv2.INTER_LINEAR)
     img = utils.get_img_from_map(img)
-    plist = utils.end_point(robot_pos, sensor_config, sensor_data)
-    for pts in plist:
+    sensor_end_points = utils.end_point(robot_pos, sensor_config, sensor_data)
+    for pts in sensor_end_points:
         cv2.line(
             img, 
             (int(scale*robot_pos[0]), int(scale*robot_pos[1])), 
             (int(scale*pts[0]), int(scale*pts[1])),
-            (255,0,0), 1)
+            (255,0,0), 1
+        )
 
     cv2.circle(img,(int(scale*robot_pos[0]), int(scale*robot_pos[1])), int(3*scale), (0,0,255), -1)
     return img
 
 
-def DrawParticle(img, plist, scale=1.0):
-    for p in plist:
-        cv2.circle(img,(int(scale*p.pos[0]), int(scale*p.pos[1])), int(2), (0,200,0), -1)
+def DrawParticle(img, particles, scale=1.0):
+    for p in particles:
+        cv2.circle(img,(int(scale*p.pose[0]), int(scale*p.pose[1])), int(2), (0,200,0), -1)
     return img
 
 
@@ -77,9 +78,13 @@ if __name__ == '__main__':
     robot = Robot(robot_pos, robot_config, sensor_config, '../img/env1.png')
 
     # Initialize GridMap
-    # lo_occ, lo_free, lo_max, lo_min
-    map_param = [0.4, -0.4, 5.0, -5.0] 
-    m = OccupancyGridMap(map_param, grid_size=1.0)
+    occupancy_map_config = {
+        'lo_occupied': 0.4,
+        'lo_free': -0.4,
+        'lo_max': 5.0,
+        'lo_min': -5.0
+    }
+    m = OccupancyGridMap(occupancy_map_config, grid_size=1.0)
     sensor_data = robot.measure()
     SensorMapping(m, robot.pose, robot.sensor.config, sensor_data)
 
@@ -92,7 +97,7 @@ if __name__ == '__main__':
     pf = ParticleFilter(robot_pos.copy(), robot_config, sensor_config, copy.deepcopy(m), 10)
     
     # Scan Matching Test
-    matching_m = OccupancyGridMap(map_param, grid_size=1.0)
+    matching_m = OccupancyGridMap(occupancy_map_config, grid_size=1.0)
     SensorMapping(matching_m, robot.pose, robot.sensor.config, sensor_data)
     matching_pos = np.array([150.0, 100.0, 0.0])
 
