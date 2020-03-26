@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+import yaml
 from math import *
 
 
@@ -86,3 +87,9 @@ def rot2deg(R):
         return 0.0
     elif cos<0 and sin==0:
         return 180.0
+
+
+def load_config(config_file):
+    with open(config_file) as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
+    return config

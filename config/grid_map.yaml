@@ -1,0 +1,6 @@
+# grid_map.yaml
+
+lo_occupied: 0.4
+lo_free: -0.4
+lo_max: 5.0
+lo_min: -5.0

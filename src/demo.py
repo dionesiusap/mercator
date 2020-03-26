@@ -62,52 +62,31 @@ if __name__ == '__main__':
     cv2.namedWindow('view', cv2.WINDOW_AUTOSIZE)
     cv2.namedWindow('map', cv2.WINDOW_AUTOSIZE)
 
+    # Load configs
+    env_config = utils.load_config('../config/environment.yaml')
+    agent_config = utils.load_config('../config/agent.yaml')
+    grid_map_config = utils.load_config('../config/grid_map.yaml')
+
     # Initialize 2D Environment
-    environment_config = {
-        'img_src': '../img/env1.png',
-        'scale': 1.0
-    }
+    env = utils.load_env_from_img(env_config['img_src'])
+    env = cv2.resize(env, (round(env_config['scale']*env.shape[1]), round(env_config['scale']*env.shape[0])), interpolation=cv2.INTER_LINEAR)
 
-    env = utils.load_env_from_img(environment_config['img_src'])
-    env = cv2.resize(env, (round(environment_config['scale']*env.shape[1]), round(environment_config['scale']*env.shape[0])), interpolation=cv2.INTER_LINEAR)
-
-    robot_config = {
-        'velocity': 6.0,
-        'omega': 6.0
-    }
-
-    sensor_config = {
-        'sensor_size': 240,
-        'start_angle': -30.0,
-        'end_angle': 210.0,
-        'max_dist': 150.0
-    }
+    # Initialize Agent
     robot_pos = np.array([150.0, 100.0, 0.0])
-    robot = Robot(robot_pos, robot_config, sensor_config)
+    robot = Robot(robot_pos, agent_config['robot'], agent_config['sensor'])
 
-    # Initialize GridMap
-    occupancy_map_config = {
-        'lo_occupied': 0.4,
-        'lo_free': -0.4,
-        'lo_max': 5.0,
-        'lo_min': -5.0
-    }
-    m = OccupancyGridMap(occupancy_map_config, grid_size=1.0)
+    # Initialize Grid Map
+    m = OccupancyGridMap(grid_map_config, grid_size=1.0)
     sensor_data = robot.measure(env)
     SensorMapping(m, robot.pose, robot.sensor.config, sensor_data)
+
+    # Initialize Particle
+    pf = ParticleFilter(robot_pos.copy(), agent_config['robot'], agent_config['sensor'], copy.deepcopy(m), 10)
 
     img = Draw(env, 1, robot.pose, sensor_data, robot.sensor.config)
     mimg = AdaptiveGetMap(m)
     cv2.imshow('view',img)
     cv2.imshow('map',mimg)
-
-    # Initialize Particle
-    pf = ParticleFilter(robot_pos.copy(), robot_config, sensor_config, copy.deepcopy(m), 10)
-    
-    # Scan Matching Test
-    matching_m = OccupancyGridMap(occupancy_map_config, grid_size=1.0)
-    SensorMapping(matching_m, robot.pose, robot.sensor.config, sensor_data)
-    matching_pos = np.array([150.0, 100.0, 0.0])
 
     # Main Loop
     while(1):

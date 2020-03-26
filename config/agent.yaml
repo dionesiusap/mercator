@@ -1,0 +1,10 @@
+# agent.yaml
+
+robot:
+  velocity: 6.0
+  omega: 6.0
+sensor:
+  sensor_size: 240
+  start_angle: -30.0
+  end_angle: 210.0
+  max_dist: 150.0
