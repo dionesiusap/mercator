@@ -15,7 +15,7 @@ class Particle:
         self.grid_map = grid_map
 
 
-    def control_update(self, action_id, sigma=[0.4,0.4,0.4]):
+    def control_update(self, action_id, sigma=[0.3,0.3):
         vec = [np.sin(np.deg2rad(self.pose[2])), np.cos(np.deg2rad(self.pose[2]))]
         vel = self.robot_config['velocity']
         ang = self.robot_config['omega']
@@ -44,7 +44,6 @@ class Particle:
 
         self.pose[0] += random.gauss(0, sigma[0])
         self.pose[1] += random.gauss(0, sigma[1])
-        self.pose[2] += random.gauss(0, sigma[2])
 
 
     def nearest_distance(self, x, y, wsize, th):
@@ -71,7 +70,11 @@ class Particle:
         for i in range(len(plist)):
             if not (sensor_data[i] > self.sensor_config['max_dist']-1 or sensor_data[i] < 1):
                 dist = self.nearest_distance(plist[i][0], plist[i][1], 4, 0.2)
-                q = q * (p_hit*utils.gaussian(0,dist,sig_hit) + p_rand/self.sensor_config['max_dist'])
+                # q = q * (p_hit*utils.gaussian(0,dist,sig_hit) + p_rand/self.sensor_config['max_dist'])
+                w = p_hit * np.random.normal(dist,sig_hit) + p_rand / self.sensor_config['max_dist']
+                if w > 0:
+                    # l = math.log(p_hit * np.random.normal(dist,sig_hit) + p_rand / self.sensor_config['max_dist'])
+                    q += math.log(w)
         return q
 
 
@@ -116,6 +119,6 @@ class ParticleFilter:
         for i in range(self.size):
             self.particles[i].control_update(control)
             field[i] = self.particles[i].measurement_update(sensor_data)
-        print(field)
-        if np.sum(field) != 0:
-            self.weights = field / np.sum(field)
+        # print(field)
+        # if np.sum(field) != 0:
+        self.weights = field / np.sum(field)

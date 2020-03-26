@@ -47,10 +47,9 @@ class Robot:
         if action_id == 8:
             self.pose[1] += self.velocity
         
-        sig=[0.5,0.5,0.5]
+        sig=[0.3,0.3]
         self.pose[0] += random.gauss(0,sig[0])
         self.pose[1] += random.gauss(0,sig[1])
-        self.pose[2] += random.gauss(0,sig[2])
 
 
     def measure(self, environment):
